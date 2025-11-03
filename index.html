@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Portal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    textarea { min-height: 150px; resize: vertical; }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .message {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .ticket-id {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+      margin: 10px 0;
+    }
+    .nav {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .nav a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎫 Support Portal</h1>
+    <p class="subtitle">Submit a ticket and we'll get back to you soon</p>
+
+    <form id="ticketForm">
+      <div class="form-group">
+        <label for="name">Your Name *</label>
+        <input type="text" id="name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" id="email" required>
+      </div>
+
+      <div class="form-group">
+        <label for="subject">Subject *</label>
+        <input type="text" id="subject" required>
+      </div>
+
+      <div class="form-group">
+        <label for="priority">Priority</label>
+        <select id="priority">
+          <option value="low">Low</option>
+          <option value="medium" selected>Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea id="description" required placeholder="Please describe your issue..."></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">Submit Ticket</button>
+    </form>
+
+    <div id="message" class="message"></div>
+
+    <div class="nav">
+      <a href="view-ticket.html">View My Tickets</a>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://your-project.supabase.co/functions/v1/submit-ticket';
+
+    document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('submitBtn');
+      const msg = document.getElementById('message');
+      
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      msg.style.display = 'none';
+
+      try {
+        const response = await fetch(SUPABASE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            subject: document.getElementById('subject').value,
+            description: document.getElementById('description').value,
+            priority: document.getElementById('priority').value
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          msg.className = 'message success';
+          msg.innerHTML = `
+            <strong>✅ Ticket Created!</strong><br>
+            <div class="ticket-id">${result.ticketId}</div>
+            <p>Check your email for confirmation and updates.</p>
+          `;
+          msg.style.display = 'block';
+          document.getElementById('ticketForm').reset();
+        } else {
+          throw new Error(result.error);
+        }
+
+      } catch (error) {
+        msg.className = 'message error';
+        msg.innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+        msg.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Ticket';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View Ticket</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #333; margin-bottom: 30px; }
+    .search-box {
+      display: grid;
+      grid-template-columns: 2fr 3fr auto;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    input {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .ticket-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .ticket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .ticket-id {
+      font-size: 20px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .status.open { background: #d4edda; color: #155724; }
+    .status.in_progress { background: #fff3cd; color: #856404; }
+    .status.closed { background: #d1ecf1; color: #0c5460; }
+    .update {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+    .update-meta {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .no-results {
+      text-align: center;
+      color: #666;
+      padding: 40px;
+    }
+    .nav { text-align: center; margin-top: 20px; }
+    .nav a { color: #667eea; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 View My Tickets</h1>
+
+    <div class="search-box">
+      <input type="text" id="ticketId" placeholder="Ticket ID (e.g., TKT-2024-0001)">
+      <input type="email" id="email" placeholder="Your email address">
+      <button onclick="searchTicket()">Search</button>
+    </div>
+
+    <div id="results"></div>
+
+    <div class="nav">
+      <a href="index.html">← Submit New Ticket</a>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://your-project.supabase.co';
+    const SUPABASE_KEY = 'your-anon-key';
+
+    // Check URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('id') && urlParams.get('email')) {
+      document.getElementById('ticketId').value = urlParams.get('id');
+      document.getElementById('email').value = urlParams.get('email');
+      searchTicket();
+    }
+
+    async function searchTicket() {
+      const ticketId = document.getElementById('ticketId').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const results = document.getElementById('results');
+
+      if (!ticketId || !email) {
+        results.innerHTML = '<div class="no-results">Please enter both ticket ID and email</div>';
+        return;
+      }
+
+      results.innerHTML = '<div class="no-results">Searching...</div>';
+
+      try {
+        // Get ticket
+        const ticketResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/tickets?ticket_id=eq.${ticketId}&email=eq.${email}&select=*`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const tickets = await ticketResponse.json();
+
+        if (!tickets || tickets.length === 0) {
+          results.innerHTML = '<div class="no-results">Ticket not found. Please check your ticket ID and email.</div>';
+          return;
+        }
+
+        const ticket = tickets[0];
+
+        // Get updates
+        const updatesResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/ticket_updates?ticket_id=eq.${ticketId}&order=created_at.desc&select=*`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        const updates = await updatesResponse.json();
+
+        // Display ticket
+        results.innerHTML = `
+          <div class="ticket-card">
+            <div class="ticket-header">
+              <div class="ticket-id">${ticket.ticket_id}</div>
+              <span class="status ${ticket.status}">${ticket.status.replace('_', ' ')}</span>
+            </div>
+            
+            <h3>${ticket.subject}</h3>
+            <p style="color: #666; margin: 10px 0;">${ticket.description}</p>
+            
+            <div style="font-size: 12px; color: #999; margin-top: 15px;">
+              Created: ${new Date(ticket.created_at).toLocaleString()}<br>
+              Priority: ${ticket.priority}
+            </div>
+            
+            ${updates && updates.length > 0 ? `
+              <div style="margin-top: 20px;">
+                <strong>Updates:</strong>
+                ${updates.map(u => `
+                  <div class="update">
+                    <div class="update-meta">
+                      ${u.author_name} • ${new Date(u.created_at).toLocaleString()}
+                    </div>
+                    ${u.update_type === 'status_change' 
+                      ? `<p>Status changed from <strong>${u.old_status}</strong> to <strong>${u.new_status}</strong></p>`
+                      : `<p>${u.content}</p>`
+                    }
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+
+      } catch (error) {
+        results.innerHTML = `<div class="no-results">Error: ${error.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
