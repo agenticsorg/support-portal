@@ -3,54 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Support Portal</title>
+  <title>Support Portal | Agentics Foundation</title>
+  <link rel="icon" type="image/x-icon" href="https://agentics.org/favicon.ico">
   <style>
+    :root {
+      --primary: #E25A3C;
+      --primary-dark: #C94A2E;
+      --primary-light: #F07A60;
+      --text-dark: #1a1a1a;
+      --text-muted: #666666;
+      --bg-light: #f5f5f5;
+      --white: #ffffff;
+      --border: #e0e0e0;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #E25A3C 0%, #C94A2E 50%, #A13D26 100%);
       min-height: 100vh;
       padding: 20px;
     }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header a {
+      color: var(--white);
+      text-decoration: none;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .header a:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
     .container {
       max-width: 600px;
-      margin: 40px auto;
-      background: white;
-      border-radius: 12px;
+      margin: 0 auto 40px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 16px;
       padding: 40px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.2);
     }
-    h1 { color: #333; margin-bottom: 10px; }
-    .subtitle { color: #666; margin-bottom: 30px; font-size: 14px; }
+    h1 {
+      color: var(--text-dark);
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
     .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-dark);
+      font-weight: 500;
+    }
     input, select, textarea {
       width: 100%;
       padding: 12px;
-      border: 2px solid #e0e0e0;
+      border: 2px solid var(--border);
       border-radius: 6px;
       font-size: 14px;
       font-family: inherit;
+      transition: border-color 0.2s;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: var(--primary);
     }
     textarea { min-height: 150px; resize: vertical; }
     button {
       width: 100%;
       padding: 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+      background: var(--primary);
+      color: var(--white);
       border: none;
       border-radius: 6px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: background 0.2s, transform 0.2s;
     }
-    button:hover { transform: translateY(-2px); }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
     .message {
       margin-top: 20px;
       padding: 15px;
@@ -70,7 +118,7 @@
     .ticket-id {
       font-size: 24px;
       font-weight: bold;
-      color: #667eea;
+      color: var(--primary);
       margin: 10px 0;
     }
     .nav {
@@ -78,15 +126,31 @@
       margin-top: 20px;
     }
     .nav a {
-      color: #667eea;
+      color: var(--primary);
       text-decoration: none;
       font-weight: 500;
+    }
+    .nav a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      color: rgba(255,255,255,0.8);
+      font-size: 13px;
+    }
+    .footer a {
+      color: var(--white);
     }
   </style>
 </head>
 <body>
+  <div class="header">
+    <a href="https://agentics.org">← Back to agentics.org</a>
+  </div>
+
   <div class="container">
-    <h1>🎫 Support Portal</h1>
+    <h1>Support Portal</h1>
     <p class="subtitle">Submit a ticket and we'll get back to you soon</p>
 
     <form id="ticketForm">
@@ -128,6 +192,10 @@
     <div class="nav">
       <a href="view-ticket.html">View My Tickets</a>
     </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://agentics.org">Agentics Foundation</a>
   </div>
 
   <script>
