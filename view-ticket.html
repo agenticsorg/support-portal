@@ -52,42 +52,17 @@
       margin-bottom: 30px;
       font-size: 28px;
     }
-    .search-box {
-      display: grid;
-      grid-template-columns: 2fr 3fr auto;
-      gap: 10px;
-      margin-bottom: 30px;
-    }
-    @media (max-width: 600px) {
-      .search-box {
-        grid-template-columns: 1fr;
-      }
-    }
-    input {
-      padding: 12px;
-      border: 2px solid var(--border);
+    .secure-notice {
+      background: #f0f4ff;
+      border: 1px solid var(--primary);
       border-radius: 6px;
-      font-size: 14px;
-      font-family: inherit;
-      transition: border-color 0.2s;
-    }
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    button {
-      padding: 12px 24px;
-      background: var(--primary);
-      color: var(--white);
-      border: none;
-      border-radius: 6px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.2s;
-    }
-    button:hover {
-      background: var(--primary-dark);
-      transform: translateY(-2px);
+      padding: 10px 15px;
+      font-size: 13px;
+      color: var(--primary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .ticket-card {
       border: 2px solid var(--border);
@@ -118,6 +93,18 @@
     .status.open { background: #d4edda; color: #155724; }
     .status.in_progress { background: #fff3cd; color: #856404; }
     .status.closed { background: #d1ecf1; color: #0c5460; }
+    .status.resolved { background: #cce5ff; color: #004085; }
+    .description {
+      white-space: pre-wrap;
+      color: var(--text-muted);
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    .meta {
+      font-size: 12px;
+      color: #999;
+      margin-top: 15px;
+    }
     .update {
       background: var(--bg-light);
       padding: 15px;
@@ -129,10 +116,29 @@
       color: var(--text-muted);
       margin-bottom: 10px;
     }
-    .no-results {
+    .message {
       text-align: center;
       color: var(--text-muted);
       padding: 40px;
+    }
+    .message.error {
+      color: #721c24;
+      background: #f8d7da;
+      border-radius: 8px;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+    .loading::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
     }
     .nav {
       text-align: center;
@@ -163,15 +169,16 @@
   </div>
 
   <div class="container">
-    <h1>View My Tickets</h1>
+    <h1>View Ticket</h1>
 
-    <div class="search-box">
-      <input type="text" id="ticketId" placeholder="Ticket ID (e.g., TKT-2024-0001)">
-      <input type="email" id="email" placeholder="Your email address">
-      <button onclick="searchTicket()">Search</button>
+    <div id="secure-notice" class="secure-notice" style="display: none;">
+      <span>🔒</span>
+      <span>This is your private ticket view. The link contains a secure token.</span>
     </div>
 
-    <div id="results"></div>
+    <div id="content">
+      <div class="loading">Loading ticket</div>
+    </div>
 
     <div class="nav">
       <a href="index.html">← Submit New Ticket</a>
@@ -183,102 +190,98 @@
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://your-project.supabase.co';
-    const SUPABASE_KEY = 'your-anon-key';
+    const SUPABASE_FUNCTION_URL = 'https://xeudmuqefyptputmxgul.supabase.co/functions/v1/get-ticket';
 
-    // Check URL parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('id') && urlParams.get('email')) {
-      document.getElementById('ticketId').value = urlParams.get('id');
-      document.getElementById('email').value = urlParams.get('email');
-      searchTicket();
-    }
+    async function loadTicket() {
+      const content = document.getElementById('content');
+      const secureNotice = document.getElementById('secure-notice');
 
-    async function searchTicket() {
-      const ticketId = document.getElementById('ticketId').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const results = document.getElementById('results');
+      // Get params from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const ticketId = urlParams.get('id');
+      const token = urlParams.get('token');
 
-      if (!ticketId || !email) {
-        results.innerHTML = '<div class="no-results">Please enter both ticket ID and email</div>';
+      if (!ticketId || !token) {
+        content.innerHTML = `
+          <div class="message error">
+            <strong>Invalid Link</strong><br><br>
+            This ticket link is missing required parameters.<br>
+            Please use the link from your confirmation email.
+          </div>
+        `;
         return;
       }
 
-      results.innerHTML = '<div class="no-results">Searching...</div>';
+      // Show secure notice
+      secureNotice.style.display = 'flex';
 
       try {
-        // Get ticket
-        const ticketResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/tickets?ticket_id=eq.${ticketId}&email=eq.${email}&select=*`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        const response = await fetch(`${SUPABASE_FUNCTION_URL}?id=${encodeURIComponent(ticketId)}&token=${encodeURIComponent(token)}`);
 
-        const tickets = await ticketResponse.json();
-
-        if (!tickets || tickets.length === 0) {
-          results.innerHTML = '<div class="no-results">Ticket not found. Please check your ticket ID and email.</div>';
-          return;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to load ticket');
         }
 
-        const ticket = tickets[0];
+        const { ticket, updates } = await response.json();
 
-        // Get updates
-        const updatesResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/ticket_updates?ticket_id=eq.${ticketId}&order=created_at.desc&select=*`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        const updates = await updatesResponse.json();
-
-        // Display ticket
-        results.innerHTML = `
+        // Render ticket
+        content.innerHTML = `
           <div class="ticket-card">
             <div class="ticket-header">
-              <div class="ticket-id">${ticket.ticket_id}</div>
-              <span class="status ${ticket.status}">${ticket.status.replace('_', ' ')}</span>
+              <div class="ticket-id">${escapeHtml(ticket.ticket_id)}</div>
+              <span class="status ${ticket.status}">${escapeHtml(ticket.status.replace('_', ' '))}</span>
             </div>
-            
-            <h3>${ticket.subject}</h3>
-            <p style="color: #666; margin: 10px 0;">${ticket.description}</p>
-            
-            <div style="font-size: 12px; color: #999; margin-top: 15px;">
-              Created: ${new Date(ticket.created_at).toLocaleString()}<br>
-              Priority: ${ticket.priority}
+
+            <h3>${escapeHtml(ticket.subject)}</h3>
+            <div class="description">${escapeHtml(ticket.description)}</div>
+
+            <div class="meta">
+              <strong>Created:</strong> ${new Date(ticket.created_at).toLocaleString()}<br>
+              <strong>Priority:</strong> ${escapeHtml(ticket.priority)}<br>
+              <strong>Last Updated:</strong> ${new Date(ticket.updated_at).toLocaleString()}
             </div>
-            
+
             ${updates && updates.length > 0 ? `
               <div style="margin-top: 20px;">
                 <strong>Updates:</strong>
                 ${updates.map(u => `
                   <div class="update">
                     <div class="update-meta">
-                      ${u.author_name} • ${new Date(u.created_at).toLocaleString()}
+                      <strong>${escapeHtml(u.author_name)}</strong> • ${new Date(u.created_at).toLocaleString()}
                     </div>
-                    ${u.update_type === 'status_change' 
-                      ? `<p>Status changed from <strong>${u.old_status}</strong> to <strong>${u.new_status}</strong></p>`
-                      : `<p>${u.content}</p>`
+                    ${u.update_type === 'status_change'
+                      ? `<p>Status changed from <strong>${escapeHtml(u.old_status || 'unknown')}</strong> to <strong>${escapeHtml(u.new_status || 'unknown')}</strong></p>`
+                      : `<p style="white-space: pre-wrap;">${escapeHtml(u.content || '')}</p>`
                     }
                   </div>
                 `).join('')}
               </div>
-            ` : ''}
+            ` : '<p style="margin-top: 20px; color: #666;">No updates yet. You\'ll receive an email when there\'s an update.</p>'}
           </div>
         `;
 
       } catch (error) {
-        results.innerHTML = `<div class="no-results">Error: ${error.message}</div>`;
+        content.innerHTML = `
+          <div class="message error">
+            <strong>Unable to Load Ticket</strong><br><br>
+            ${escapeHtml(error.message)}<br><br>
+            Please check that you're using the correct link from your email.
+          </div>
+        `;
       }
     }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Load ticket on page load
+    loadTicket();
   </script>
 </body>
 </html>
